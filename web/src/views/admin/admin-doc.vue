@@ -210,7 +210,27 @@ export default defineComponent({
     const modalLoading = ref(false);//时间加载
     const editor = new E('#content');
     editor.config.zIndex = 0;
-
+    //用于图片上传
+    editor.config.customUploadImg = (resultFiles: File[], insertImgFn: (url: string) => void) => {
+      if (!resultFiles || resultFiles.length === 0) {
+        return;
+      }
+      const formData = new FormData();
+      resultFiles.forEach(file => formData.append('file', file));
+      axios.post('/file/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      }).then((response) => {
+        const data = response.data;
+        if (data.success && data.content) {
+          const urls = Array.isArray(data.content) ? data.content : [data.content];
+          urls.forEach((url: string) => insertImgFn(url));
+        } else {
+          message.error(data.message || '图片上传失败');
+        }
+      }).catch(() => {
+        message.error('图片上传失败');
+      });
+    };
     const handleSave = () => {
       modalLoading.value = true;
       doc.value.content = editor.txt.html();

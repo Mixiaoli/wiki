@@ -66,12 +66,13 @@ public class LogAspect {
 
         Object[] arguments = new Object[args.length];
         for (int i = 0; i < args.length; i++) {
-            if (args[i] instanceof ServletRequest
-                    || args[i] instanceof ServletResponse
-                    || args[i] instanceof MultipartFile) {
+            Object arg = args[i];
+            if (isMultipartType(arg)
+                    || arg instanceof ServletRequest
+                    || arg instanceof ServletResponse) {
                 continue;
             }
-            arguments[i] = args[i];
+            arguments[i] = arg;
         }
         // 排除字段，敏感字段或太长的字段不显示
         String[] excludeProperties = {"password", "file"};
@@ -79,6 +80,41 @@ public class LogAspect {
         PropertyPreFilters.MySimplePropertyPreFilter excludefilter = filters.addFilter();
         excludefilter.addExcludes(excludeProperties);
         LOG.info("请求参数: {}", JSONObject.toJSONString(arguments, excludefilter));
+    }
+    private boolean isMultipartType(Object arg) {
+        if (arg == null) {
+            return false;
+        }
+        if (arg instanceof MultipartFile) {
+            return true;
+        }
+        if (arg instanceof MultipartFile[]) {
+            return true;
+        }
+        if (arg.getClass().isArray()) {
+            int length = java.lang.reflect.Array.getLength(arg);
+            for (int i = 0; i < length; i++) {
+                Object element = java.lang.reflect.Array.get(arg, i);
+                if (isMultipartType(element)) {
+                    return true;
+                }
+            }
+        }
+        if (arg instanceof Iterable) {
+            for (Object element : (Iterable<?>) arg) {
+                if (isMultipartType(element)) {
+                    return true;
+                }
+            }
+        }
+        if (arg instanceof java.util.Map) {
+            for (Object value : ((java.util.Map<?, ?>) arg).values()) {
+                if (isMultipartType(value)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Around("controllerPointcut()")

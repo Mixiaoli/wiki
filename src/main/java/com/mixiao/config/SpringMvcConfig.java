@@ -2,8 +2,10 @@ package com.mixiao.config;
 
 import com.mixiao.interceptor.ActionInterceptor;
 import com.mixiao.interceptor.LoginInterceptor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.annotation.Resource;
@@ -17,6 +19,9 @@ public class SpringMvcConfig implements WebMvcConfigurer {
     @Resource
     ActionInterceptor actionInterceptor;
 
+    @Value("${file.upload.path}")
+    private String fileUploadPath;
+
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/**")
@@ -29,7 +34,8 @@ public class SpringMvcConfig implements WebMvcConfigurer {
                         "/doc/all/**",
                         "/doc/vote/**",
                         "/doc/find-content/**",
-                        "/ebook-snapshot/**"
+                        "/ebook-snapshot/**",
+                        "/upload/**"
                 );
 
         registry.addInterceptor(actionInterceptor)
@@ -37,5 +43,14 @@ public class SpringMvcConfig implements WebMvcConfigurer {
                         "/*/save",
                         "/*/delete/**",
                         "/*/reset-password");
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String path = fileUploadPath;
+        if (!path.endsWith("/")) {
+            path = path + "/";
+        }
+        registry.addResourceHandler("/upload/**").addResourceLocations("file:" + path);
     }
 }
