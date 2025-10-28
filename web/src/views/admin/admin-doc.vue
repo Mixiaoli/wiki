@@ -223,7 +223,13 @@ export default defineComponent({
         const data = response.data;
         if (data.success && data.content) {
           const urls = Array.isArray(data.content) ? data.content : [data.content];
-          urls.forEach((url: string) => insertImgFn(url));
+          const base = (axios.defaults.baseURL || process.env.VUE_APP_SERVER || '') as string;
+          const normalizedBase = base.replace(/\/$/, '');
+          urls.forEach((url: string) => {
+            const normalizedUrl = url.replace(/^\//, '');
+            const finalUrl = normalizedBase ? `${normalizedBase}/${normalizedUrl}` : url;
+            insertImgFn(finalUrl);
+          });
         } else {
           message.error(data.message || '图片上传失败');
         }
