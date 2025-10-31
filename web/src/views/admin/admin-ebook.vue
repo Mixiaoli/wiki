@@ -31,7 +31,8 @@
           @change="handleTableChange"
       >
         <template #cover="{text:cover}">
-          <img class="img-wh" v-if="cover" :src="cover" alt="avatar"/>
+          <img class="img-wh" v-if="cover" :src="buildFileUrl(cover)" alt="封面"/>
+          <div v-else class="img-wh img-placeholder">无</div>
         </template>
         <!--渲染 text跟record的数据一样-->
         <template v-slot:category="{ text, record }">
@@ -71,9 +72,9 @@
   >
     <!--弹出表单-->
     <a-form :model="ebook" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-      <a-form-item label="封面">
-        <a-input v-model:value="ebook.cover"/>
-      </a-form-item>
+<!--      <a-form-item label="封面">-->
+<!--        <a-input v-model:value="ebook.cover"/>-->
+<!--      </a-form-item>-->
       <a-form-item label="名称">
         <a-input v-model:value="ebook.name"/>
       </a-form-item>
@@ -281,6 +282,7 @@ export default defineComponent({
     onMounted(() => {
       handleQueryCategory();
     });
+    const buildFileUrl = Tool.buildFileUrl;
     return {
       param,
       ebooks,//表格
@@ -299,7 +301,8 @@ export default defineComponent({
       handleModalOk,
       categoryIds,
       level1,
-      handleDelete
+      handleDelete,
+      buildFileUrl
     }
   }
 });
@@ -313,5 +316,14 @@ export default defineComponent({
   line-height: 50px;
   border-radius: 8%;
   margin: 5px 0;
+}
+.img-placeholder {
+  background: #f3f4f6;
+  color: #94a3b8;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #cbd5f5;
 }
 </style>

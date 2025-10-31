@@ -104,7 +104,15 @@
                       </router-link>
                     </template>
                     <template #avatar>
-                      <a-avatar :src="item.cover" shape="square"/>
+                      <a-avatar
+                          shape="square"
+                          class="article-cover"
+                          :src="buildFileUrl(item.cover)"
+                      >
+                        <template v-if="!item.cover">
+                          <component :is="'BookOutlined'"/>
+                        </template>
+                      </a-avatar>
                     </template>
                   </a-list-item-meta>
                 </a-list-item>
@@ -220,7 +228,7 @@ export default defineComponent({//配置导入的组件
       handleQueryCategory();
       // handleQueryEbook();
     });
-
+    const buildFileUrl = Tool.buildFileUrl;
     return {
       ebooks,
       pagination: {
@@ -234,7 +242,8 @@ export default defineComponent({//配置导入的组件
       isShowWelcome,
       openKeys,
       scrollToContent,
-      showWelcome
+      showWelcome,
+      buildFileUrl
     }
   }
 });
@@ -289,7 +298,25 @@ export default defineComponent({//配置导入的组件
   color: #3b82f6;
   margin-bottom: 12px;
 }
+.article-cover {
+  width: 86px;
+  height: 112px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 16px 32px rgba(30, 64, 175, 0.15);
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.12), rgba(37, 99, 235, 0.12));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
+  font-size: 24px;
+}
 
+.article-cover :deep(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .hero h1 {
   font-size: 44px;
   font-weight: 800;

@@ -23,13 +23,18 @@
         <a-col :span="18" class="doc-detail-col">
           <section class="doc-detail" v-if="doc && doc.id">
             <header class="doc-header">
-              <div class="doc-title-group">
-                <span class="doc-badge">章节</span>
-                <h1>{{ doc.name }}</h1>
+              <div class="doc-header-main">
+                <div class="doc-title-group">
+                  <span class="doc-badge">章节</span>
+                  <h1>{{ doc.name }}</h1>
+                </div>
+                <div class="doc-meta">
+                  <span><component :is="'ReadOutlined'"/>阅读 {{ doc.viewCount }}</span>
+                  <span><component :is="'LikeOutlined'"/>点赞 {{ doc.voteCount }}</span>
+                </div>
               </div>
-              <div class="doc-meta">
-                <span><component :is="'ReadOutlined'"/>阅读 {{ doc.viewCount }}</span>
-                <span><component :is="'LikeOutlined'"/>点赞 {{ doc.voteCount }}</span>
+              <div class="doc-cover-wrapper" v-if="doc.cover">
+                <img :src="buildFileUrl(doc.cover)" alt="文档封面" class="doc-cover"/>
               </div>
             </header>
             <a-divider class="doc-divider"/>
@@ -151,14 +156,15 @@ export default defineComponent({
     onMounted(() => {
       handleQuery();
     });
-
+    const buildFileUrl = Tool.buildFileUrl;
     return {
       level1,
       html,
       onSelect,
       defaultSelectedKeys,
       doc,
-      vote
+      vote,
+      buildFileUrl
     }
   }
 });
@@ -252,9 +258,17 @@ ml.html */
 .doc-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: stretch;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 20px;
+}
+
+.doc-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .doc-title-group {
@@ -346,6 +360,20 @@ ml.html */
 .wangeditor table {
   border-top: 1px solid #ccc;
   border-left: 1px solid #ccc;
+}
+.doc-cover-wrapper {
+  flex-shrink: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 16px 32px rgba(30, 64, 175, 0.18);
+  border: 1px solid rgba(191, 219, 254, 0.7);
+}
+
+.doc-cover {
+  display: block;
+  width: 180px;
+  height: 120px;
+  object-fit: cover;
 }
 
 .wangeditor table td,

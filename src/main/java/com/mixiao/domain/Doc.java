@@ -35,6 +35,9 @@ public class Doc {
         return parent;
     }
 
+    //封面
+    private String cover;
+
     public void setParent(Long parent) {
         this.parent = parent;
     }
@@ -71,6 +74,14 @@ public class Doc {
         this.voteCount = voteCount;
     }
 
+    public String getCover() {
+        return cover;
+    }
+
+    public void setCover(String cover) {
+        this.cover = cover;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -84,6 +95,7 @@ public class Doc {
         sb.append(", sort=").append(sort);
         sb.append(", viewCount=").append(viewCount);
         sb.append(", voteCount=").append(voteCount);
+        sb.append(", cover=").append(cover);
         sb.append("]");
         return sb.toString();
     }

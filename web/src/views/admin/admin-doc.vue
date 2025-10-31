@@ -87,6 +87,26 @@
             <a-form-item label="顺序">
               <a-input v-model:value="doc.sort" placeholder="顺序"/>
             </a-form-item>
+            <a-form-item label="封面">
+              <div class="cover-upload">
+                <img v-if="doc.cover" :src="buildFileUrl(doc.cover)" alt="封面预览" class="cover-preview"/>
+                <a-space align="start">
+                  <a-upload
+                      :show-upload-list="false"
+                      :custom-request="handleCoverUpload"
+                      :disabled="coverUploading"
+                      accept="image/*"
+                  >
+                    <a-button type="primary" :loading="coverUploading">
+                      上传封面
+                    </a-button>
+                  </a-upload>
+                  <a-button v-if="doc.cover" @click="clearCover" :disabled="coverUploading">
+                    移除
+                  </a-button>
+                </a-space>
+              </div>
+            </a-form-item>
             <a-form-item>
               <a-button type="primary" @click="handlePreviewContent()">
                 <EyeOutlined/>
@@ -124,6 +144,14 @@ import {useRoute} from "vue-router";
 import ExclamationCircleOutlined from "@ant-design/icons-vue/ExclamationCircleOutlined";
 import E from 'wangeditor';
 
+interface RcCustomRequestOptions {
+  file: File | Blob | { originFileObj?: File | Blob };
+  onProgress?: (event: { percent: number }) => void;
+  onSuccess?: (body: any, file?: File, xhr?: XMLHttpRequest) => void;
+  onError?: (error: Error) => void;
+  [key: string]: any;
+}
+
 export default defineComponent({
   name: 'AdminDoc',
   setup() {
@@ -139,6 +167,7 @@ export default defineComponent({
     param.value = {};
     const docs = ref();//响应式数据 获取的书籍实时反馈到页面上
     const loading = ref(false);
+    const coverUploading = ref(false);
 
     // 因为树选择组件的属性状态，会随当前编辑的节点而变化，所以单独声明一个响应式变量
     const treeSelectData = ref();
@@ -204,38 +233,121 @@ export default defineComponent({
         // 因为树选择组件的属性状态，会随当前编辑的节点而变化，所以单独声明一个响应式变量
     const doc = ref();//表单
     doc.value = {
-      ebookId: route.query.ebookId
+      ebookId: route.query.ebookId,
+      cover: ''
     };
     const modalVisible = ref(false);//显示弹窗
     const modalLoading = ref(false);//时间加载
-    const editor = new E('#content');
-    editor.config.zIndex = 0;
-    //用于图片上传
-    editor.config.customUploadImg = (resultFiles: File[], insertImgFn: (url: string) => void) => {
-      if (!resultFiles || resultFiles.length === 0) {
-        return;
+    const buildFileUrl = (url: string) => {
+      if (!url) {
+        return url;
       }
-      const formData = new FormData();
-      resultFiles.forEach(file => formData.append('file', file));
-      axios.post('/file/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      }).then((response) => {
+      if (/^https?:\/\//i.test(url)) {
+        return url;
+      }
+      const base = (axios.defaults.baseURL || process.env.VUE_APP_SERVER || '') as string;
+      if (!base) {
+        return url;
+      }
+      const normalizedBase = base.replace(/\/$/, '');
+      const normalizedUrl = url.replace(/^\//, '');
+      return `${normalizedBase}/${normalizedUrl}`;
+    };
+
+    const uploadFiles = async (files: File[]) => {
+      if (!files || files.length === 0) {
+        return [];
+      }
+      try {
+        const formData = new FormData();
+        files.forEach(file => formData.append('file', file));
+        const response = await axios.post('/file/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
         const data = response.data;
         if (data.success && data.content) {
           const urls = Array.isArray(data.content) ? data.content : [data.content];
-          const base = (axios.defaults.baseURL || process.env.VUE_APP_SERVER || '') as string;
-          const normalizedBase = base.replace(/\/$/, '');
-          urls.forEach((url: string) => {
-            const normalizedUrl = url.replace(/^\//, '');
-            const finalUrl = normalizedBase ? `${normalizedBase}/${normalizedUrl}` : url;
-            insertImgFn(finalUrl);
-          });
-        } else {
-          message.error(data.message || '图片上传失败');
+          return urls as string[];
         }
-      }).catch(() => {
-        message.error('图片上传失败');
-      });
+        throw new Error(data.message || '图片上传失败');
+      } catch (error: any) {
+        if (error?.response?.data?.message) {
+          throw new Error(error.response.data.message);
+        }
+        throw new Error(error?.message || '图片上传失败');
+      }
+    };
+
+    const editor = new E('#content');
+    editor.config.zIndex = 0;
+
+    editor.config.pasteFilterStyle = false; // 允许保留粘贴内容的内联样式
+    editor.config.pasteIgnoreImg = false; // 允许保留粘贴内容中的图片
+    const insertClipboardHtml = (pasteEvent: ClipboardEvent): boolean => {
+      const clipboardData = pasteEvent.clipboardData || (window as Window & { clipboardData?: DataTransfer }).clipboardData;
+      if (!clipboardData) {
+        return false;
+      }
+      const html = clipboardData.getData('text/html');
+      if (!html) {
+        return false;
+      }
+      pasteEvent.preventDefault();
+      const cleanedHtml = html
+          .replace(/<!--[\s\S]*?-->/g, '')
+          .replace(/<meta[^>]*?>/gi, '')
+          .replace(/<!DOCTYPE[^>]*?>/gi, '')
+          .replace(/<\/?(html|body)[^>]*?>/gi, '');
+      editor.cmd.do('insertHTML', cleanedHtml);
+      return true;
+    };
+
+    //用于图片上传
+    editor.config.customUploadImg = async (resultFiles: File[], insertImgFn: (url: string) => void) => {
+      try {
+        const urls = await uploadFiles(resultFiles);
+        urls.forEach((url: string) => {
+          insertImgFn(buildFileUrl(url));
+        });
+      } catch (error: any) {
+        message.error(error?.message || '图片上传失败');
+      }
+    };
+
+    const handleCoverUpload = async (options: RcCustomRequestOptions) => {
+      const { file, onError, onSuccess } = options;
+      if (!file) {
+        const err = new Error('请选择文件');
+        onError && onError(err);
+        return;
+      }
+      coverUploading.value = true;
+      try {
+        const urls = await uploadFiles([file as File]);
+        if (urls.length === 0) {
+          throw new Error('未返回封面地址');
+        }
+        const uploadedUrl = urls[0];
+        if (!doc.value) {
+          doc.value = { ebookId: route.query.ebookId, cover: '' } as any;
+        }
+        doc.value.cover = uploadedUrl;
+        onSuccess && onSuccess(uploadedUrl);
+        message.success('封面上传成功');
+      } catch (error: any) {
+        const err = error instanceof Error ? error : new Error(error?.message || '封面上传失败');
+        message.error(err.message || '封面上传失败');
+        onError && onError(err);
+      } finally {
+        coverUploading.value = false;
+      }
+    };
+
+    const clearCover = () => {
+      if (!doc.value) {
+        return;
+      }
+      doc.value.cover = '';
     };
     const handleSave = () => {
       modalLoading.value = true;
@@ -343,6 +455,7 @@ export default defineComponent({
       editor.txt.html("");
       modalVisible.value = true;
       doc.value = Tool.copy(record);
+      doc.value.cover = doc.value.cover || '';
       handleQueryContent();
       // 不能选择当前节点及其所有子孙节点，作为父节点，会使树断开
       treeSelectData.value = Tool.copy(level1.value);
@@ -359,7 +472,8 @@ export default defineComponent({
       modalVisible.value = true;
       editor.txt.html("");
       doc.value = {
-        ebookId: route.query.ebookId
+        ebookId: route.query.ebookId,
+        cover: ''
       };
 
       treeSelectData.value = Tool.copy(level1.value);
@@ -409,6 +523,15 @@ export default defineComponent({
     onMounted(() => {
       handleQuery();
       editor.create();//等页面渲染好了 再去create
+      //文档样式保留
+      const originalPasteEvents = [...editor.txt.eventHooks.pasteEvents];
+      editor.txt.eventHooks.pasteEvents.length = 0;
+      editor.txt.eventHooks.pasteEvents.push((pasteEvent: ClipboardEvent) => {
+        if (insertClipboardHtml(pasteEvent)) {
+          return;
+        }
+        originalPasteEvents.forEach((fn) => fn(pasteEvent));
+      });
     });
     return {
       param,
@@ -431,6 +554,10 @@ export default defineComponent({
       previewHtml,
       handlePreviewContent,
       onDrawerClose,
+      buildFileUrl,
+      handleCoverUpload,
+      clearCover,
+      coverUploading,
     }
   }
 });
@@ -444,5 +571,18 @@ export default defineComponent({
   line-height: 50px;
   border-radius: 8%;
   margin: 5px 0;
+}
+cover-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cover-preview {
+  width: 160px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #f0f0f0;
 }
 </style>

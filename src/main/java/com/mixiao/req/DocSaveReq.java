@@ -19,6 +19,8 @@ public class DocSaveReq {
     @NotNull(message = "【内容】不能为空")
     private String content;
 
+    private String cover;
+
     public Long getId() {
         return id;
     }
@@ -83,6 +85,14 @@ public class DocSaveReq {
         this.content = content;
     }
 
+    public String getCover() {
+        return cover;
+    }
+
+    public void setCover(String cover) {
+        this.cover = cover;
+    }
+
     @Override
     public String toString() {
         return "DocSaveReq{" +
@@ -94,6 +104,7 @@ public class DocSaveReq {
                 ", viewCount=" + viewCount +
                 ", voteCount=" + voteCount +
                 ", content='" + content + '\'' +
+                ", cover='" + cover + '\'' +
                 '}';
     }
 }

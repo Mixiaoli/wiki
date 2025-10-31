@@ -14,6 +14,7 @@ public class DocQueryResp {
     private Integer viewCount;
 
     private Integer voteCount;
+    private String cover;
 
     public Long getId() {
         return id;
@@ -70,6 +71,13 @@ public class DocQueryResp {
     public void setVoteCount(Integer voteCount) {
         this.voteCount = voteCount;
     }
+    public String getCover() {
+        return cover;
+    }
+
+    public void setCover(String cover) {
+        this.cover = cover;
+    }
 
     @Override
     public String toString() {
@@ -84,6 +92,7 @@ public class DocQueryResp {
         sb.append(", sort=").append(sort);
         sb.append(", viewCount=").append(viewCount);
         sb.append(", voteCount=").append(voteCount);
+        sb.append(", cover=").append(cover);
         sb.append("]");
         return sb.toString();
     }

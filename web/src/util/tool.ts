@@ -1,3 +1,4 @@
+import axios from 'axios';
 export class Tool {
     /**
      * 空校验 null或""都返回true
@@ -69,5 +70,21 @@ export class Tool {
         }
 
         return uuid.join('');
+    }
+//传输封面url
+    public static buildFileUrl(url?: string | null) {
+        if (!url) {
+            return '';
+        }
+        if (/^https?:\/\//i.test(url)) {
+            return url;
+        }
+        const base = (axios.defaults.baseURL || process.env.VUE_APP_SERVER || '') as string;
+        if (!base) {
+            return url;
+        }
+        const normalizedBase = base.replace(/\/$/, '');
+        const normalizedUrl = url.replace(/^\//, '');
+        return `${normalizedBase}/${normalizedUrl}`;
     }
 }
