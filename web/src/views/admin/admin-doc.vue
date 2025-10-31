@@ -283,10 +283,29 @@ export default defineComponent({
 
     editor.config.pasteFilterStyle = false; // 允许保留粘贴内容的内联样式
     editor.config.pasteIgnoreImg = false; // 允许保留粘贴内容中的图片
-    const insertClipboardHtml = (pasteEvent: ClipboardEvent): boolean => {
+    const insertClipboardHtml = async (pasteEvent: ClipboardEvent): Promise<boolean> => {
       const clipboardData = pasteEvent.clipboardData || (window as Window & { clipboardData?: DataTransfer }).clipboardData;
       if (!clipboardData) {
         return false;
+      }
+      const items = clipboardData.items ? Array.from(clipboardData.items) : [];
+      const imageFiles: File[] = items
+          .filter((item) => item.kind === 'file' && item.type && item.type.indexOf('image') === 0)
+          .map((item) => item.getAsFile())
+          .filter((file): file is File => !!file);
+
+      if (imageFiles.length > 0) {
+        pasteEvent.preventDefault();
+        try {
+          const urls = await uploadFiles(imageFiles);
+          urls.forEach((url: string) => {
+            const imageHtml = `<img src="${buildFileUrl(url)}" style="max-width: 100%;" />`;
+            editor.cmd.do('insertHTML', imageHtml);
+          });
+        } catch (error: any) {
+          message.error(error?.message || '图片上传失败');
+        }
+        return true;
       }
       const html = clipboardData.getData('text/html');
       if (!html) {
@@ -527,10 +546,12 @@ export default defineComponent({
       const originalPasteEvents = [...editor.txt.eventHooks.pasteEvents];
       editor.txt.eventHooks.pasteEvents.length = 0;
       editor.txt.eventHooks.pasteEvents.push((pasteEvent: ClipboardEvent) => {
-        if (insertClipboardHtml(pasteEvent)) {
-          return;
-        }
-        originalPasteEvents.forEach((fn) => fn(pasteEvent));
+      insertClipboardHtml(pasteEvent).then((handled) => {
+          if (handled) {
+            return;
+          }
+          originalPasteEvents.forEach((fn) => fn(pasteEvent));
+        });
       });
     });
     return {

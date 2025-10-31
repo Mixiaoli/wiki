@@ -20,7 +20,7 @@
         <router-link to="/admin/category">分类管理</router-link>
       </a-menu-item>
       <a-menu-item key="/about">
-        <router-link to="/about">关于我们</router-link>
+        <router-link to="/about">关于我</router-link>
       </a-menu-item>
       <a-popconfirm
           title="确认退出登录?"
