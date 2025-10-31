@@ -6,6 +6,7 @@ import AdminUser from '../views/admin/admin-user.vue'
 import Doc from '../views/doc.vue'
 import AdminCategory from '../views/admin/admin-category.vue'
 import AdminDoc from '../views/admin/admin-doc.vue'
+import IpPlanner from '../views/tools/ip-planner.vue';
 import store from "@/store";
 import {Tool} from "@/util/tool";
 
@@ -14,6 +15,11 @@ const routes: Array<RouteRecordRaw> = [
         path: '/',
         name: 'Home',
         component: Home
+    },
+    {
+        path: '/tools/ip-planner',
+        name: 'IpPlanner',
+        component: IpPlanner
     },
     {
         path: '/about',
